@@ -9,6 +9,7 @@ import {
   groupUntestedFloors,
   pinnableSiblings,
   sharedFloor,
+  peerInstallSpecs,
   unpublishedSiblings,
   untestedFloors,
 } from "../src/checks.mjs";
@@ -436,5 +437,77 @@ describe("untestedFloors — which declared floors the intersection floor never 
     // is not the one going unverified.
     const declarations = [{ pkg: "@getloopscale/loopzero-orm", range: "^0.2.0" }];
     expect(untestedFloors({ declarations, pinned: "0.1.1", publishedVersions: published })).toEqual([]);
+  });
+});
+
+describe("peerInstallSpecs — what check D may ask the registry for alongside the tarball", () => {
+  // The half of the substitution that was missing, and the shape of the release it blocked.
+  //
+  // Measured on getloopscale/loopzero#604, cutting `@getloopscale/loopzero-http@2.0.0` and `loopzero@0.64.0`
+  // together. `@getloopscale/loopzero-tauri` declares one sibling peer, `loopzero: ">=0.36.1"`, so check D ran:
+  //
+  //   npm install <tauri.tgz> <@getloopscale/loopzero-http-2.0.0.tgz> <loopzero-0.64.0.tgz> loopzero@latest
+  //
+  // `loopzero@latest` is the registry's 0.63.1 — the version that pull request exists to replace —
+  // and it depends on `@getloopscale/loopzero-http@^1.2.0`. npm honoured the last spec for `loopzero`, so the
+  // packed 0.64.0 lost to it and the tree carried BOTH `@getloopscale/loopzero-http@2.0.0` (packed, at the root)
+  // and `@getloopscale/loopzero-http@1.2.0` (via the registry's loopzero). Check D reported the duplicate, and it
+  // was right about the tree it was handed and wrong about the artefact.
+  //
+  // The duplicate cannot outlive the publish that resolves it: once `loopzero@0.64.0` is on the
+  // registry, `loopzero@latest` requires `@getloopscale/loopzero-http@^2.0.0` and there is one copy. So the check
+  // was unsatisfiable BEFORE publishing, for every release that bumps a package and a sibling that
+  // depends on it — the exact case `unpublishedSiblings` was written for, escaping through the one
+  // path it did not cover.
+  const localSiblings = [{ name: "loopzero", version: "0.64.0", dir: "/w/packages/loopzero" }];
+
+  it("test_asks_for_latest_when_the_registry_can_answer", () => {
+    const refs = [{ dep: "@getloopscale/loopzero-sdk", field: "peerDependencies", range: ">=4.0.0" }];
+    expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual(["@getloopscale/loopzero-sdk@latest"]);
+  });
+
+  it("test_does_not_ask_for_a_sibling_the_packed_tarball_already_supplies", () => {
+    // The regression. Without this, the substitution is added and then immediately overridden.
+    const refs = [{ dep: "loopzero", field: "peerDependencies", range: ">=0.36.1" }];
+    expect(peerInstallSpecs({ references: refs, localSiblings })).toEqual([]);
+  });
+
+  it("test_keeps_the_siblings_the_substitution_does_not_cover", () => {
+    // Narrow, not blanket: one peer is being published by this cut and one is not, and only the
+    // first is dropped. Dropping both would stop exercising a peer the registry can serve.
+    const refs = [
+      { dep: "loopzero", field: "peerDependencies", range: ">=0.36.1" },
+      { dep: "@getloopscale/loopzero-sdk", field: "peerDependencies", range: ">=4.0.0" },
+    ];
+    expect(peerInstallSpecs({ references: refs, localSiblings })).toEqual(["@getloopscale/loopzero-sdk@latest"]);
+  });
+
+  it("test_ignores_anything_that_is_not_a_peer_dependency", () => {
+    // Unchanged behaviour, pinned so the filter cannot widen unnoticed: an ordinary dependency
+    // travels inside the tarball and must not be installed a second time from the registry.
+    const refs = [
+      { dep: "@getloopscale/loopzero-sdk", field: "dependencies", range: "^4.0.0" },
+      { dep: "@getloopscale/loopzero-ui", field: "devDependencies", range: "^1.0.0" },
+    ];
+    expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual([]);
+  });
+
+  it("test_ignores_a_local_protocol_range", () => {
+    // `workspace:` / `link:` / `file:` / `portal:` never reach a registry, so asking for
+    // `@latest` on their behalf would test a package the consumer does not get.
+    for (const range of ["workspace:*", "link:../x", "file:../x", "portal:../x"]) {
+      const refs = [{ dep: "@getloopscale/loopzero-sdk", field: "peerDependencies", range }];
+      expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual([]);
+    }
+  });
+
+  it("test_asks_once_when_a_peer_is_declared_twice", () => {
+    // A duplicate spec is how the defect above expressed itself in the first place; the output
+    // is a command line, and repeating a name on it invites npm to pick between two answers.
+    const refs = [
+      { dep: "@getloopscale/loopzero-sdk", field: "peerDependencies", range: ">=4.0.0" },
+      { dep: "@getloopscale/loopzero-sdk", field: "peerDependencies", range: ">=4.1.0" },
+    ];
+    expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual(["@getloopscale/loopzero-sdk@latest"]);
   });
 });
