@@ -478,7 +478,8 @@ describe("peerInstallSpecs — what check D may ask the registry for alongside t
     // and the gate reports a package nobody can install — when the package is installable and was
     // simply paired with the wrong sibling. Measured on getloopscale/loopzero-sdk#510.
     const refs = [{ field: "peerDependencies", dep: "@getloopscale/loopzero-sdk", range: ">=4.63.4-next.0" }];
-    expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual([
+    const latest = new Map([["@getloopscale/loopzero-sdk", "4.63.3"]]);
+    expect(peerInstallSpecs({ references: refs, localSiblings: [], latest })).toEqual([
       "@getloopscale/loopzero-sdk@4.63.4-next.0",
     ]);
   });
@@ -491,6 +492,23 @@ describe("peerInstallSpecs — what check D may ask the registry for alongside t
   it("falls back to `latest` rather than throwing on an unparseable range", () => {
     const refs = [{ field: "peerDependencies", dep: "x", range: "nonsense" }];
     expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual(["x@latest"]);
+  });
+
+  it("keeps `latest` when the floor is a SENTINEL the registry never published", () => {
+    // `>=0.1.0-alpha.0` is the idiom for "0.1.0 or above, prereleases included". The suffix is a
+    // sentinel, not a release — asking for it installs `undefined`, which is what broke
+    // getloopscale/loopzero#626. Latest satisfies the range, so latest is the right ask, and a rule
+    // keyed on "the floor looks like a prerelease" gets this backwards.
+    const refs = [{ field: "peerDependencies", dep: "@getloopscale/loopzero-http", range: ">=0.1.0-alpha.0" }];
+    const latest = new Map([["@getloopscale/loopzero-http", "2.0.0"]]);
+    expect(peerInstallSpecs({ references: refs, localSiblings: [], latest })).toEqual([
+      "@getloopscale/loopzero-http@latest",
+    ]);
+  });
+
+  it("keeps `latest` when the registry answer is unknown, rather than inventing one", () => {
+    const refs = [{ field: "peerDependencies", dep: "y", range: ">=9.9.9-next.0" }];
+    expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual(["y@latest"]);
   });
 
   it("test_keeps_the_siblings_the_substitution_does_not_cover", () => {
