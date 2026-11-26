@@ -19,7 +19,7 @@ import {
 describe("isSibling", () => {
   it("test_recognises_the_scoped_packages_and_the_bare_framework", () => {
     expect(isSibling("@getloopscale/loopzero-sdk")).toBe(true);
-    expect(isSibling("loopzero")).toBe(true);
+    expect(isSibling("@getloopscale/loopzero")).toBe(true);
   });
 
   it("test_does_not_claim_unrelated_packages_that_merely_start_with_loopzero", () => {
@@ -158,11 +158,11 @@ describe("groupUntestedFloors — the extra runs needed to exercise what the int
     // `loopzero-plugins` has fourteen packages declaring `loopzero >=0.50.1`. Fourteen separate
     // installs of the same version would cost fourteen times as much and prove one thing.
     const grouped = groupUntestedFloors([
-      { dep: "loopzero", pkg: "@getloopscale/loopzero-plugin-a", range: ">=0.50.1", claims: "0.50.1", tested: "0.52.1" },
-      { dep: "loopzero", pkg: "@getloopscale/loopzero-plugin-b", range: ">=0.50.1", claims: "0.50.1", tested: "0.52.1" },
+      { dep: "@getloopscale/loopzero", pkg: "@getloopscale/loopzero-plugin-a", range: ">=0.50.1", claims: "0.50.1", tested: "0.52.1" },
+      { dep: "@getloopscale/loopzero", pkg: "@getloopscale/loopzero-plugin-b", range: ">=0.50.1", claims: "0.50.1", tested: "0.52.1" },
     ]);
     expect(grouped).toHaveLength(1);
-    expect(grouped[0]).toMatchObject({ dep: "loopzero", version: "0.50.1" });
+    expect(grouped[0]).toMatchObject({ dep: "@getloopscale/loopzero", version: "0.50.1" });
     expect(grouped[0].packages).toEqual(["@getloopscale/loopzero-plugin-a", "@getloopscale/loopzero-plugin-b"]);
   });
 
@@ -326,16 +326,16 @@ describe("unpublishedSiblings — what check D cannot get from the registry yet"
   });
 
   it("test_follows_a_substituted_tarballs_own_unpublished_asks", () => {
-    // `@getloopscale/loopzero-tauri` depends on `loopzero@0.57.0`, which is substituted — and that tarball then
+    // `@getloopscale/loopzero-tauri` depends on `@getloopscale/loopzero@0.57.0`, which is substituted — and that tarball then
     // requests `@getloopscale/loopzero-agents@^12.1.0`, still absent. Substituting only the direct reference
     // moves the ETARGET one level down. Measured: this is what @getloopscale/loopzero-tauri failed on.
     const deep = [
-      { name: "loopzero", version: "0.57.0", dir: "/w/packages/loopzero", references: [{ dep: "@getloopscale/loopzero-agents" }] },
+      { name: "@getloopscale/loopzero", version: "0.57.0", dir: "/w/packages/loopzero", references: [{ dep: "@getloopscale/loopzero-agents" }] },
       { name: "@getloopscale/loopzero-agents", version: "12.1.0", dir: "/w/packages/agents" },
     ];
-    const pub = { loopzero: ["0.56.0"], "@getloopscale/loopzero-agents": ["12.0.0"] };
-    const out = unpublishedSiblings({ references: [{ dep: "loopzero" }], workspace: deep, published: pub });
-    expect(out.map((s) => s.name).sort()).toEqual(["@getloopscale/loopzero-agents", "loopzero"]);
+    const pub = { "@getloopscale/loopzero": ["0.56.0"], "@getloopscale/loopzero-agents": ["12.0.0"] };
+    const out = unpublishedSiblings({ references: [{ dep: "@getloopscale/loopzero" }], workspace: deep, published: pub });
+    expect(out.map((s) => s.name).sort()).toEqual(["@getloopscale/loopzero", "@getloopscale/loopzero-agents"]);
   });
 
   it("test_returns_nothing_when_the_registry_answer_is_missing_rather_than_empty", () => {
@@ -380,13 +380,13 @@ describe("sharedFloor — the floor a workspace can actually install", () => {
 describe("consumersLeftBehind — the reverse check, run by the publisher before a major", () => {
   const consumers = [
     { pkg: "@getloopscale/loopzero-studio", repo: "loopzero-studio", range: ">=11.0.0 <12" },
-    { pkg: "loopzero", repo: "loopzero", range: "^11.1.0" },
+    { pkg: "@getloopscale/loopzero", repo: "loopzero", range: "^11.1.0" },
     { pkg: "@loopcode/agent", repo: "getloopscale-labs", range: ">=11.0.0 <13" },
   ];
 
   it("test_names_who_breaks_when_the_next_major_is_published", () => {
     const left = consumersLeftBehind({ consumers, nextVersion: "12.0.0" });
-    expect(left.map((c) => c.pkg).sort()).toEqual(["@getloopscale/loopzero-studio", "loopzero"]);
+    expect(left.map((c) => c.pkg).sort()).toEqual(["@getloopscale/loopzero", "@getloopscale/loopzero-studio"]);
   });
 
   it("test_is_empty_for_a_patch_nobody_excludes", () => {
@@ -394,11 +394,11 @@ describe("consumersLeftBehind — the reverse check, run by the publisher before
   });
 
   it("test_labels_a_consumer_that_already_requires_something_newer_as_ahead_not_behind", () => {
-    // Seen for real: `loopzero@0.56.0` shipped requiring `@getloopscale/loopzero-agents: ^12.0.0`
+    // Seen for real: `@getloopscale/loopzero@0.56.0` shipped requiring `@getloopscale/loopzero-agents: ^12.0.0`
     // while the checkout still held 11.1.0. That consumer is not stranded by the
     // release — the checkout is behind the registry. Calling both "left behind" would
     // put a finding in the publisher's release with nothing for them to do about it.
-    const ahead = [{ pkg: "loopzero", repo: "loopzero", range: "^12.0.0" }];
+    const ahead = [{ pkg: "@getloopscale/loopzero", repo: "loopzero", range: "^12.0.0" }];
     const found = consumersLeftBehind({ consumers: ahead, nextVersion: "11.1.0" });
     expect(found).toHaveLength(1);
     expect(found[0].direction).toBe("ahead");
@@ -421,7 +421,7 @@ describe("consumersLeftBehind — the reverse check, run by the publisher before
 
 describe("duplicateSiblingCopies — check D: one runtime, or two?", () => {
   it("test_finds_the_second_copy_that_npm_installed_without_complaining", () => {
-    // The studio defect exactly: `npm i loopzero @getloopscale/loopzero-studio` succeeded and put
+    // The studio defect exactly: `npm i @getloopscale/loopzero @getloopscale/loopzero-studio` succeeded and put
     // two runtimes in the tree. A gate that only asks "did the install fail?" is
     // green here, which is why this check asks a different question.
     const tree = {
@@ -509,23 +509,23 @@ describe("untestedFloors — which declared floors the intersection floor never 
 describe("peerInstallSpecs — what check D may ask the registry for alongside the tarball", () => {
   // The half of the substitution that was missing, and the shape of the release it blocked.
   //
-  // Measured on getloopscale/loopzero#604, cutting `@getloopscale/loopzero-http@2.0.0` and `loopzero@0.64.0`
+  // Measured on getloopscale/loopzero#604, cutting `@getloopscale/loopzero-http@2.0.0` and `@getloopscale/loopzero@0.64.0`
   // together. `@getloopscale/loopzero-tauri` declares one sibling peer, `loopzero: ">=0.36.1"`, so check D ran:
   //
   //   npm install <tauri.tgz> <@getloopscale/loopzero-http-2.0.0.tgz> <loopzero-0.64.0.tgz> loopzero@latest
   //
-  // `loopzero@latest` is the registry's 0.63.1 — the version that pull request exists to replace —
+  // `@getloopscale/loopzero@latest` is the registry's 0.63.1 — the version that pull request exists to replace —
   // and it depends on `@getloopscale/loopzero-http@^1.2.0`. npm honoured the last spec for `loopzero`, so the
   // packed 0.64.0 lost to it and the tree carried BOTH `@getloopscale/loopzero-http@2.0.0` (packed, at the root)
   // and `@getloopscale/loopzero-http@1.2.0` (via the registry's loopzero). Check D reported the duplicate, and it
   // was right about the tree it was handed and wrong about the artefact.
   //
-  // The duplicate cannot outlive the publish that resolves it: once `loopzero@0.64.0` is on the
-  // registry, `loopzero@latest` requires `@getloopscale/loopzero-http@^2.0.0` and there is one copy. So the check
+  // The duplicate cannot outlive the publish that resolves it: once `@getloopscale/loopzero@0.64.0` is on the
+  // registry, `@getloopscale/loopzero@latest` requires `@getloopscale/loopzero-http@^2.0.0` and there is one copy. So the check
   // was unsatisfiable BEFORE publishing, for every release that bumps a package and a sibling that
   // depends on it — the exact case `unpublishedSiblings` was written for, escaping through the one
   // path it did not cover.
-  const localSiblings = [{ name: "loopzero", version: "0.64.0", dir: "/w/packages/loopzero" }];
+  const localSiblings = [{ name: "@getloopscale/loopzero", version: "0.64.0", dir: "/w/packages/loopzero" }];
 
   it("test_an_alternation_asks_for_the_highest_the_range_admits_not_the_dist_tag", () => {
     // getloopscale/shared-workflows#62. A range that admits two majors is what a workspace declares
@@ -610,7 +610,7 @@ describe("peerInstallSpecs — what check D may ask the registry for alongside t
 
   it("test_does_not_ask_for_a_sibling_the_packed_tarball_already_supplies", () => {
     // The regression. Without this, the substitution is added and then immediately overridden.
-    const refs = [{ dep: "loopzero", field: "peerDependencies", range: ">=0.36.1" }];
+    const refs = [{ dep: "@getloopscale/loopzero", field: "peerDependencies", range: ">=0.36.1" }];
     expect(peerInstallSpecs({ references: refs, localSiblings })).toEqual([]);
   });
 
@@ -627,8 +627,8 @@ describe("peerInstallSpecs — what check D may ask the registry for alongside t
   });
 
   it("keeps `latest` for a stable range, which is the question that line asks", () => {
-    const refs = [{ field: "peerDependencies", dep: "loopzero", range: "^0.64.0" }];
-    expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual(["loopzero@latest"]);
+    const refs = [{ field: "peerDependencies", dep: "@getloopscale/loopzero", range: "^0.64.0" }];
+    expect(peerInstallSpecs({ references: refs, localSiblings: [] })).toEqual(["@getloopscale/loopzero@latest"]);
   });
 
   it("falls back to `latest` rather than throwing on an unparseable range", () => {
@@ -657,7 +657,7 @@ describe("peerInstallSpecs — what check D may ask the registry for alongside t
     // Narrow, not blanket: one peer is being published by this cut and one is not, and only the
     // first is dropped. Dropping both would stop exercising a peer the registry can serve.
     const refs = [
-      { dep: "loopzero", field: "peerDependencies", range: ">=0.36.1" },
+      { dep: "@getloopscale/loopzero", field: "peerDependencies", range: ">=0.36.1" },
       { dep: "@getloopscale/loopzero-sdk", field: "peerDependencies", range: ">=4.0.0" },
     ];
     expect(peerInstallSpecs({ references: refs, localSiblings })).toEqual(["@getloopscale/loopzero-sdk@latest"]);
@@ -697,7 +697,7 @@ describe("unpublishedWorkspaceVersions — the reason a floor leg cannot ask the
   // getloopscale/shared-workflows#27. The floor legs pin one sibling under `pnpm.overrides` and then
   // run a plain install against the registry. On a Version Packages PR the workspace already
   // carries the versions that pull request exists to publish, so the re-resolution asks npm for
-  // `loopzero@0.57.1` while the registry's newest is 0.57.0 — `ERR_PNPM_NO_MATCHING_VERSION`.
+  // `@getloopscale/loopzero@0.57.1` while the registry's newest is 0.57.0 — `ERR_PNPM_NO_MATCHING_VERSION`.
   //
   // Same structural deadlock #17 fixed for check D, on a different step: check D's fix lives in
   // the tarball path, and these legs never take it.
@@ -707,10 +707,10 @@ describe("unpublishedWorkspaceVersions — the reason a floor leg cannot ask the
   // reported NOT CHECKED, with the reason named.
   it("test_names_a_workspace_package_whose_local_version_the_registry_does_not_have", () => {
     const blocked = unpublishedWorkspaceVersions({
-      workspace: [{ name: "loopzero", version: "0.57.1" }],
-      published: { loopzero: ["0.57.0", "0.56.0"] },
+      workspace: [{ name: "@getloopscale/loopzero", version: "0.57.1" }],
+      published: { "@getloopscale/loopzero": ["0.57.0", "0.56.0"] },
     });
-    expect(blocked).toEqual([{ name: "loopzero", version: "0.57.1" }]);
+    expect(blocked).toEqual([{ name: "@getloopscale/loopzero", version: "0.57.1" }]);
   });
 
   it("test_says_nothing_when_every_workspace_version_is_already_on_the_registry", () => {
@@ -718,8 +718,8 @@ describe("unpublishedWorkspaceVersions — the reason a floor leg cannot ask the
     // that fires on the normal case is a gate somebody disables.
     expect(
       unpublishedWorkspaceVersions({
-        workspace: [{ name: "loopzero", version: "0.57.0" }],
-        published: { loopzero: ["0.57.0"] },
+        workspace: [{ name: "@getloopscale/loopzero", version: "0.57.0" }],
+        published: { "@getloopscale/loopzero": ["0.57.0"] },
       }),
     ).toEqual([]);
   });
@@ -730,7 +730,7 @@ describe("unpublishedWorkspaceVersions — the reason a floor leg cannot ask the
     // and call the silence a result.
     expect(
       unpublishedWorkspaceVersions({
-        workspace: [{ name: "loopzero", version: "0.57.1" }],
+        workspace: [{ name: "@getloopscale/loopzero", version: "0.57.1" }],
         published: {},
       }),
     ).toEqual([]);
@@ -741,13 +741,13 @@ describe("unpublishedWorkspaceVersions — the reason a floor leg cannot ask the
     // fix a single manifest and meet the same failure again.
     const blocked = unpublishedWorkspaceVersions({
       workspace: [
-        { name: "loopzero", version: "0.57.1" },
+        { name: "@getloopscale/loopzero", version: "0.57.1" },
         { name: "@getloopscale/loopzero-http", version: "0.5.0" },
         { name: "@getloopscale/loopzero-agents", version: "12.0.0" },
       ],
-      published: { loopzero: ["0.57.0"], "@getloopscale/loopzero-http": ["0.4.0"], "@getloopscale/loopzero-agents": ["12.0.0"] },
+      published: { "@getloopscale/loopzero": ["0.57.0"], "@getloopscale/loopzero-http": ["0.4.0"], "@getloopscale/loopzero-agents": ["12.0.0"] },
     });
-    expect(blocked.map((b) => b.name)).toEqual(["@getloopscale/loopzero-http", "loopzero"]);
+    expect(blocked.map((b) => b.name)).toEqual(["@getloopscale/loopzero", "@getloopscale/loopzero-http"]);
   });
 });
 
@@ -782,12 +782,12 @@ describe("floorsInOwnWorkspace — a floor the leg cannot exercise because it wo
     // nothing, so the leg works and must keep running. Excluding every sibling would have gutted
     // the feature to fix the workspace-self case.
     const untested = [
-      { pkg: "@getloopscale/loopzero-plugin-a", dep: "loopzero", range: ">=0.50.1", claims: "0.50.1", tested: "0.57.0" },
+      { pkg: "@getloopscale/loopzero-plugin-a", dep: "@getloopscale/loopzero", range: ">=0.50.1", claims: "0.50.1", tested: "0.57.0" },
     ];
 
     const out = floorsInOwnWorkspace({ untested, workspace: ["@getloopscale/loopzero-plugin-a", "@getloopscale/loopzero-plugin-b"] });
 
-    expect(out.map((r) => r.dep)).toEqual(["loopzero"]);
+    expect(out.map((r) => r.dep)).toEqual(["@getloopscale/loopzero"]);
   });
 
   it("test_an_all_self_referential_input_yields_nothing_rather_than_a_leg_that_OOMs", () => {

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Workflows and actions are referenced as `getloopscale/shared-workflows`, and the two packages are `@getloopscale/loopzero-dep-check` and `@getloopscale/loopzero-release-channel`. Callers must update every `uses:` line.
+
 ### Added
 
 - **The promotion gate accepts a per-item delivery branch, after checking every commit in it
@@ -434,8 +438,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   name, the registry copy won, and the substitution written to make such a release pass was defeated
   by the argument next to it.
 
-  Measured on `getloopscale/loopzero#604`, cutting `@getloopscale/loopzero-http@2.0.0` and `loopzero@0.64.0` together:
-  `loopzero@latest` was still 0.63.1, which depends on `@getloopscale/loopzero-http@^1.2.0`, so the tree carried
+  Measured on `getloopscale/loopzero#604`, cutting `@getloopscale/loopzero-http@2.0.0` and `@getloopscale/loopzero@0.64.0` together:
+  `@getloopscale/loopzero@latest` was still 0.63.1, which depends on `@getloopscale/loopzero-http@^1.2.0`, so the tree carried
   `@getloopscale/loopzero-http` twice and the gate reported a duplicate that could not outlive the publish
   resolving it. The check was unsatisfiable BEFORE publishing, for exactly the release shape
   `unpublishedSiblings` exists to support.
@@ -636,7 +640,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same cut. It could not before, and no manifest change could make it: `pnpm pack` rewrites
   `workspace:^` to the new local version — correctly — and the install then asked npm for the
   version that pull request exists to publish, answering `ETARGET`. Measured on
-  `getloopscale/loopzero#524`, where `loopzero@0.57.0` asked for `@getloopscale/loopzero-agents@^12.1.0` while the
+  `getloopscale/loopzero#524`, where `@getloopscale/loopzero@0.57.0` asked for `@getloopscale/loopzero-agents@^12.1.0` while the
   registry had `12.0.0`. Every monorepo publishing two interdependent packages together meets this
   on its first version pull request (#17)
 

@@ -20,11 +20,12 @@ const LOCAL_PROTOCOL = /^(workspace|link|file|portal):/;
  * Is this an ecosystem sibling — a package this organisation publishes and whose
  * versions it controls?
  *
- * Matched on the exact scope rather than a prefix: `loopzero-studio` is a repository
- * name and `@loopcode/*` is a different product, and neither belongs here.
+ * Matched on the exact package prefix rather than the scope: `@getloopscale` also carries the
+ * platform's packages (`@getloopscale/ui`), `loopzero-studio` is a repository name and
+ * `@loopcode/*` is a different product, and none of those belongs here.
  */
 export function isSibling(name) {
-  return name === "loopzero" || name.startsWith("@getloopscale/loopzero-");
+  return name === "@getloopscale/loopzero" || name.startsWith("@getloopscale/loopzero-");
 }
 
 /** How many majors separate a version from a range's upper bound. 0.x minors count. */
@@ -233,7 +234,7 @@ export function groupUntestedFloors(untested) {
  * rewrites `workspace:^` to the NEW local version — correctly — and then the install asks npm for
  * a version whose whole purpose is to be published by that same pull request. `ETARGET`.
  *
- * Measured on getloopscale/loopzero#524: `loopzero@0.57.0` asking for `@getloopscale/loopzero-agents@^12.1.0` while
+ * Measured on getloopscale/loopzero#524: `@getloopscale/loopzero@0.57.0` asking for `@getloopscale/loopzero-agents@^12.1.0` while
  * the registry had `12.0.0`. Nothing about a manifest fixes it, and every monorepo that publishes
  * two interdependent packages together meets it on its first version pull request. The earlier one
  * there predates this gate, which is why nobody had met it before.
@@ -257,14 +258,14 @@ export function groupUntestedFloors(untested) {
  * the last spec for a name, so the packed tarball lost to the registry copy and the substitution
  * was defeated by the argument next to it.
  *
- * Measured on getloopscale/loopzero#604, cutting `@getloopscale/loopzero-http@2.0.0` and `loopzero@0.64.0` together:
+ * Measured on getloopscale/loopzero#604, cutting `@getloopscale/loopzero-http@2.0.0` and `@getloopscale/loopzero@0.64.0` together:
  *
  *   npm install <tauri.tgz> <@getloopscale/loopzero-http-2.0.0.tgz> <loopzero-0.64.0.tgz> loopzero@latest
  *
- * `loopzero@latest` was 0.63.1 — the version that pull request existed to replace — which depends on
+ * `@getloopscale/loopzero@latest` was 0.63.1 — the version that pull request existed to replace — which depends on
  * `@getloopscale/loopzero-http@^1.2.0`. The tree then held `@getloopscale/loopzero-http` twice, 2.0.0 packed at the root and
  * 1.2.0 under the registry's loopzero, and check D reported a duplicate. It was right about the tree
- * it was handed and wrong about the artefact: once `loopzero@0.64.0` is published, `loopzero@latest`
+ * it was handed and wrong about the artefact: once `@getloopscale/loopzero@0.64.0` is published, `@getloopscale/loopzero@latest`
  * requires `^2.0.0` and there is one copy. The finding could not outlive the publish that resolved
  * it, so the check was unsatisfiable BEFORE publishing — for every release that bumps a package and
  * a sibling depending on it, which is the case `unpublishedSiblings` was written for.
@@ -371,7 +372,7 @@ export function unpublishedSiblings({ references, workspace, published, manifest
   const out = [];
   const seen = new Set();
   // Transitively, because a substituted tarball brings its own unpublished asks with it.
-  // `@getloopscale/loopzero-tauri` depends on `loopzero@0.57.0`, which is substituted — and that tarball then
+  // `@getloopscale/loopzero-tauri` depends on `@getloopscale/loopzero@0.57.0`, which is substituted — and that tarball then
   // requests `@getloopscale/loopzero-agents@^12.1.0`, still absent from the registry. Substituting only the
   // direct reference moves the ETARGET one level down instead of resolving it.
   const queue = references.map((r) => r.dep);
@@ -475,7 +476,7 @@ export function consumersLeftBehind({ consumers, nextVersion, direction }) {
     // them is the publisher's problem. A consumer whose range sits BELOW the release
     // is stranded by it. A consumer already requiring something ABOVE it is not — the
     // checkout asking the question is simply behind the registry, which is how
-    // `loopzero@0.56.0` showed up requiring agents ^12.0.0 during a sweep run against a
+    // `@getloopscale/loopzero@0.56.0` showed up requiring agents ^12.0.0 during a sweep run against a
     // checkout still holding 11.1.0. Reporting both identically puts a finding in a
     // release with nothing the releaser can act on.
     const floor = semver.minVersion(range);

@@ -3,7 +3,7 @@
  *
  * This is the only check that exercises the artefact rather than the manifest, and
  * it exists because of a specific failure the other three cannot see: the studio
- * defect did not produce an install error. `npm i loopzero @getloopscale/loopzero-studio` succeeded,
+ * defect did not produce an install error. `npm i @getloopscale/loopzero @getloopscale/loopzero-studio` succeeded,
  * installed `@getloopscale/loopzero-agents` twice, and hoisted the four-majors-old copy to the root
  * of node_modules where application code resolved it first. Nothing failed; the
  * versions simply disagreed.

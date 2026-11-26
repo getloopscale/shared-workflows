@@ -54,11 +54,11 @@ export async function publishedVersions(name) {
 }
 
 /**
- * The unscoped packages this organisation publishes. The `@getloopscale` scope carries
- * its own guarantee — npm will not let anyone else publish into it — but these two
- * names have to be listed, and a name added here is a name nobody else can take.
+ * The two framework packages whose names do not start with `@getloopscale/loopzero-`. The scope
+ * is shared with the platform's own packages, so the ecosystem is matched by that prefix and
+ * these two names are listed.
  */
-const UNSCOPED_ECOSYSTEM_PACKAGES = ["loopzero", "create-loopzero"];
+const FRAMEWORK_ENTRY_PACKAGES = ["@getloopscale/loopzero", "@getloopscale/create-loopzero"];
 
 /**
  * Keep the ecosystem's own packages out of a full-text search result.
@@ -69,7 +69,7 @@ const UNSCOPED_ECOSYSTEM_PACKAGES = ["loopzero", "create-loopzero"];
  * whose README mentions loopzero would be swept in and asked about its peers.
  */
 export function keepEcosystemPackages(names) {
-  return [...new Set(names.filter((n) => n?.startsWith("@getloopscale/loopzero-") || UNSCOPED_ECOSYSTEM_PACKAGES.includes(n)))].sort();
+  return [...new Set(names.filter((n) => n?.startsWith("@getloopscale/loopzero-") || FRAMEWORK_ENTRY_PACKAGES.includes(n)))].sort();
 }
 
 /**
@@ -81,9 +81,9 @@ export function keepEcosystemPackages(names) {
  * since it reports "nobody breaks" with authority.
  */
 export async function discoverEcosystemPackages() {
-  const doc = await getJson(`${REGISTRY}/-/v1/search?text=%40loopzero&size=250`);
+  const doc = await getJson(`${REGISTRY}/-/v1/search?text=%40getloopscale&size=250`);
   const names = (doc?.objects ?? []).map((o) => o?.package?.name);
-  return keepEcosystemPackages([...names, ...UNSCOPED_ECOSYSTEM_PACKAGES]);
+  return keepEcosystemPackages([...names, ...FRAMEWORK_ENTRY_PACKAGES]);
 }
 
 /**
